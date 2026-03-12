@@ -1,9 +1,21 @@
+import { FastifyRequest, FastifyReply } from "fastify";
 import { ProductsService } from "../services/products.services";
 
 const service = new ProductsService();
 
+interface ProductParams {
+  id: string;
+}
 
-export const createProduct = async (request: any, reply: any) => {
+interface ProductBody {
+  name: string;
+  price: number;
+}
+
+export const createProduct = async (
+  request: FastifyRequest<{ Body: ProductBody }>,
+  reply: FastifyReply
+) => {
   const product = await service.create(request.body);
 
   return reply.status(201).send({
@@ -12,14 +24,19 @@ export const createProduct = async (request: any, reply: any) => {
   });
 };
 
-
-export const getProducts = async (_: any, reply: any) => {
+export const getProducts = async (
+  _: FastifyRequest,
+  reply: FastifyReply
+) => {
   const products = await service.findAll();
 
   return reply.send(products);
 };
 
-export const getProduct = async (request: any, reply: any) => {
+export const getProduct = async (
+  request: FastifyRequest<{ Params: ProductParams }>,
+  reply: FastifyReply
+) => {
   const { id } = request.params;
 
   const product = await service.findById(id);
@@ -27,7 +44,10 @@ export const getProduct = async (request: any, reply: any) => {
   return reply.send(product);
 };
 
-export const updateProduct = async (request: any, reply: any) => {
+export const updateProduct = async (
+  request: FastifyRequest<{ Params: ProductParams; Body: ProductBody }>,
+  reply: FastifyReply
+) => {
   const { id } = request.params;
 
   const product = await service.update(id, request.body);
@@ -38,13 +58,13 @@ export const updateProduct = async (request: any, reply: any) => {
   });
 };
 
-export const deleteProduct = async (request: any, reply: any) => {
+export const deleteProduct = async (
+  request: FastifyRequest<{ Params: ProductParams }>,
+  reply: FastifyReply
+) => {
   const { id } = request.params;
 
-  const product = await service.delete(id);
+  await service.delete(id);
 
-  return reply.status(204).send({
-    message: "Produto deletado com sucesso",
-    data: product 
-  });
+  return reply.status(204).send();
 };
