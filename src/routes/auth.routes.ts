@@ -1,27 +1,51 @@
-﻿import { FastifyInstance } from "fastify";
-import { register, login } from "../controllers/auth.controller";
-import { loginSchema, registerSchema } from "../schemas/auth.schema";
+import { FastifyInstance } from "fastify";
+import { authResponseSchema, authMeResponseSchema, loginSchema, registerSchema } from "../schemas/auth.schema";
+import { authMiddleware } from "../middleware/auth.middleware";
+import { login, me, register } from "../controllers/auth.controller";
 
 export async function authRoutes(app: FastifyInstance) {
-
   app.post(
-    "/register",
+    "/auth/register",
     {
       schema: {
-        body: registerSchema
-      }
+        tags: ["Auth"],
+        summary: "Registra um novo usuário",
+        body: registerSchema,
+        response: {
+          201: authResponseSchema,
+        },
+      },
     },
-    register
+    register,
   );
 
   app.post(
-    "/login",
+    "/auth/login",
     {
       schema: {
-        body: loginSchema
-      }
+        tags: ["Auth"],
+        summary: "Autentica um usuário existente",
+        body: loginSchema,
+        response: {
+          200: authResponseSchema,
+        },
+      },
     },
-    login
+    login,
   );
 
+  app.get(
+    "/auth/me",
+    {
+      preHandler: authMiddleware,
+      schema: {
+        tags: ["Auth"],
+        summary: "Retorna as informações do usuário autenticado",
+        response: {
+          200: authMeResponseSchema,
+        },
+      },
+    },
+    me,
+  );
 }
