@@ -1,11 +1,7 @@
-import { FastifyRequest, FastifyReply } from "fastify";
+﻿import { FastifyReply, FastifyRequest } from "fastify";
 import { ProductsService } from "../services/products.services";
 
 const service = new ProductsService();
-
-interface ProductParams {
-  id: string;
-}
 
 interface ProductBody {
   name: string;
@@ -13,58 +9,78 @@ interface ProductBody {
 }
 
 export const createProduct = async (
-  request: FastifyRequest<{ Body: ProductBody }>,
-  reply: FastifyReply
+  request: FastifyRequest,
+  reply: FastifyReply,
 ) => {
-  const product = await service.create(request.body);
+  if (!request.user) {
+    return reply.status(401).send({ message: "Usuário não autenticado" });
+  }
+
+  const ownerId = request.user.id;
+  const payload = request.body as ProductBody;
+
+  const product = await service.create({
+    ...payload,
+    userId: ownerId,
+  });
 
   return reply.status(201).send({
-    message: "Produto criado com sucesso",
-    data: product
+    data: product,
   });
 };
 
-export const getProducts = async (
-  _: FastifyRequest,
-  reply: FastifyReply
-) => {
+export const getProducts = async (_: FastifyRequest, reply: FastifyReply) => {
   const products = await service.findAll();
 
-  return reply.send(products);
+  return reply.send({ data: products });
 };
 
 export const getProduct = async (
-  request: FastifyRequest<{ Params: {id: string} }>,
-  reply: FastifyReply
+  request: FastifyRequest,
+  reply: FastifyReply,
 ) => {
-  const { id } = request.params;
+  const { id } = request.params as { id: string };
 
   const product = await service.findById(id);
 
-  return reply.send(product);
+  return reply.send({
+    data: product,
+  });
 };
 
 export const updateProduct = async (
-  request: FastifyRequest<{ Params: ProductParams; Body: ProductBody }>,
-  reply: FastifyReply
+  request: FastifyRequest,
+  reply: FastifyReply,
 ) => {
-  const { id } = request.params;
+  if (!request.user) {
+    return reply.status(401).send({ message: "Usuário não autenticado" });
+  }
 
-  const product = await service.update(id, request.body);
+  const { id } = request.params as { id: string };
+
+  const product = await service.update(
+    id,
+    request.body as ProductBody,
+    request.user.id,
+    request.user.role,
+  );
 
   return reply.send({
-    message: "Produto atualizado",
-    data: product
+    data: product,
   });
 };
 
 export const deleteProduct = async (
-  request: FastifyRequest<{ Params: {id: string} }>,
-  reply: FastifyReply
+  request: FastifyRequest,
+  reply: FastifyReply,
 ) => {
-  const { id } = request.params;
+  if (!request.user) {
+    return reply.status(401).send({ message: "Usuário não autenticado" });
+  }
 
-  await service.delete(id);
+  const { id } = request.params as { id: string };
+
+  await service.delete(id, request.user.id, request.user.role);
 
   return reply.status(204).send();
 };
