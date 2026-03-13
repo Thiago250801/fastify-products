@@ -34,7 +34,7 @@ export const getProducts = async (
 };
 
 export const getProduct = async (
-  request: FastifyRequest<{ Params: ProductParams }>,
+  request: FastifyRequest<{ Params: {id: string} }>,
   reply: FastifyReply
 ) => {
   const { id } = request.params;
@@ -59,7 +59,7 @@ export const updateProduct = async (
 };
 
 export const deleteProduct = async (
-  request: FastifyRequest<{ Params: ProductParams }>,
+  request: FastifyRequest<{ Params: {id: string} }>,
   reply: FastifyReply
 ) => {
   const { id } = request.params;
