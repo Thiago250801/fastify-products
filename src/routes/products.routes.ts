@@ -1,19 +1,58 @@
 import { FastifyInstance } from "fastify";
-import { createProduct, deleteProduct, getProduct, getProducts, updateProduct } from "../controllers/products.controller";
+import {
+  createProduct,
+  getProducts,
+  getProduct,
+  updateProduct,
+  deleteProduct,
+} from "../controllers/products.controller";
 
-export async function productsRoutes(fastify: FastifyInstance) {
-    // @Post - create a new product route
-    fastify.post("/products", createProduct);
+import {
+  productBodySchema,
+  productParamsSchema,
+} from "../schemas/products.schema";
 
-    // @Get - get all products route
-    fastify.get("/products", getProducts);
+export async function productsRoutes(app: FastifyInstance) {
+  app.post(
+    "/products",
+    {
+      schema: {
+        body: productBodySchema,
+      },
+    },
+    createProduct,
+  );
 
-    // @Get - get a product by id route
-    fastify.get("/products/:id", getProduct);
+  app.get("/products", getProducts);
 
-    // @Put - update a product by id route
-    fastify.put("/products/:id", updateProduct);
+  app.get(
+    "/products/:id",
+    {
+      schema: {
+        params: productParamsSchema,
+      },
+    },
+    getProduct,
+  );
 
-    // @Delete - delete a product by id route
-    fastify.delete("/products/:id", deleteProduct);
+  app.put(
+    "/products/:id",
+    {
+      schema: {
+        params: productParamsSchema,
+        body: productBodySchema,
+      },
+    },
+    updateProduct,
+  );
+
+  app.delete(
+    "/products/:id",
+    {
+      schema: {
+        params: productParamsSchema,
+      },
+    },
+    deleteProduct,
+  );
 }
