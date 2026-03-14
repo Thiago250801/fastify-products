@@ -14,6 +14,7 @@ API REST construída com Fastify + Prisma para gestão de produtos com autentica
 3. Variáveis de ambiente definidas em `.env`:
    - `DATABASE_URL` (ex.: `postgresql://postgres:postgres@localhost:5432/produtos?schema=public`).
    - `JWT_SECRET` (opcional; padrão `supersecret`, mas defina um valor forte para produção).
+   - `COOKIE_SECRET` (usado pelo plugin `@fastify/cookie` para assinar os cookies HttpOnly; pode ser o mesmo `JWT_SECRET`).
 
 ## Configuração rápida
 ```
@@ -44,9 +45,9 @@ As duas migrations (`20260312212127_add_user_model` e `20260313120000_link_produ
 ### Autenticação
 | Método | Rota | Observações |
 | --- | --- | --- |
-| `POST /auth/register` | Corpo: `{ name, email, password, confirmPassword }`.<br>Resposta: `{ user, accessToken, refreshToken }`.<br>Valida senha/confirmPassword e armazena `refreshToken` no banco. |
-| `POST /auth/login` | Corpo: `{ email, password }`. Retorna `{ user, accessToken, refreshToken }`. |
-| `GET /auth/me` | Header `Authorization: Bearer <token>`.<br>Retorna o usuário autenticado. |
+| `POST /auth/register` | Corpo: `{ name, email, password, confirmPassword }`.<br>Resposta: `{ user, accessToken, refreshToken }` e dois cookies HttpOnly (`auth_token` e `refresh_token`) com os mesmos tokens.<br>Valida senha/confirmPassword e armazena `refreshToken` no banco. |
+| `POST /auth/login` | Corpo: `{ email, password }`. Retorna `{ user, accessToken, refreshToken }` e os cookies `auth_token`/`refresh_token` (HttpOnly/`sameSite=lax`). |
+| `GET /auth/me` | Header `Authorization: Bearer <token>` ou cookie `auth_token`. Retorna o usuário autenticado. |
 
 ### Produtos
 | Método | Rota | Requisitos | Retorno |
@@ -69,11 +70,12 @@ Todas as rotas abaixo usam o middleware `authMiddleware` + `adminMiddleware`.
 | `DELETE /users/:id` | Remove o usuário (204). |
 
 ## Segurança e middleware
-- `authMiddleware` exige `Authorization: Bearer <token>` e popula `request.user` com `{ id, role }` (Fastify é augmentado via `src/types/fastify.d.ts`).
+- `authMiddleware` aceita o cabeçalho `Authorization: Bearer <token>` ou o cookie `auth_token` HttpOnly (setado em `auth.controller.ts`), sempre populando `request.user` com `{ id, role }`.
 - `adminMiddleware` garante que o usuário tenha `role === "ADMIN"`.
 - `ProductsService` valida existência do produto e checa se quem altera/exclui é o dono ou ADMIN. `UsersService` lança `NotFoundError` quando falta o registro.
 - `src/errors/http-errors.ts` define `AuthenticationError`, `ForbiddenError`, `NotFoundError`; o server mapeia essas classes para respostas 401/403/404.
 - O handler global também trata `PrismaClientKnownRequestError` com código `P2025` como 404 e registra erros no `request.log` antes de responder 500.
+- O plugin `@fastify/cookie` carrega as opções de cookie em `src/config/cookies.ts`, garantindo `httpOnly`, `secure` em produção, `sameSite=lax` e `path="/"` para os cookies `auth_token` (15 minutos) e `refresh_token` (7 dias).
 
 ## Documentação e testes manuais
 - Documentação OpenAPI gerada automaticamente e publicada em `/docs` (inclui tags `Auth`, `Products`, `Users` e esquema `BearerAuth`).
