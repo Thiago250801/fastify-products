@@ -1,4 +1,5 @@
-﻿import fastify from "fastify";
+import fastify from "fastify";
+import fastifyCookie from "@fastify/cookie";
 import swagger from "@fastify/swagger";
 import swaggerUI from "@fastify/swagger-ui";
 import { serializerCompiler, validatorCompiler, ZodTypeProvider } from "fastify-type-provider-zod";
@@ -18,6 +19,15 @@ app.setValidatorCompiler(validatorCompiler);
 app.setSerializerCompiler(serializerCompiler);
 
 const server = app.withTypeProvider<ZodTypeProvider>();
+const isProduction = process.env.NODE_ENV === "production";
+
+server.register(fastifyCookie, {
+  secret: process.env.COOKIE_SECRET ?? "cookie-secret",
+  parseOptions: {
+    secure: isProduction,
+    sameSite: "lax",
+  },
+});
 
 // Swagger
 server.register(swagger, {
