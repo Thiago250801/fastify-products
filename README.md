@@ -21,6 +21,7 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/produtos?schema=publ
 JWT_SECRET="supersecret"
 COOKIE_SECRET="cookie-secret"
 NODE_ENV="development"
+PORT="3333"
 ```
 
 O jeito recomendado neste projeto para subir o banco é usar Docker com o `docker-compose.yml`.
@@ -34,7 +35,9 @@ npx prisma migrate dev
 npm run dev
 ```
 
-O servidor sobe na porta `3333` e a documentação fica em `http://localhost:3333/docs`.
+O servidor usa a variável de ambiente `PORT` e faz fallback para `3333` em desenvolvimento. Por padrão, a documentação fica em `http://localhost:3333/docs`.
+
+Isso é importante para deploy no Render e em outros providers, que injetam a porta HTTP via ambiente.
 
 ## Scripts
 | Script | Descrição |

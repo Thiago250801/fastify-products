@@ -38,6 +38,9 @@ app.setSerializerCompiler(serializerCompiler);
 
 const server = app.withTypeProvider<ZodTypeProvider>();
 const isProduction = process.env.NODE_ENV === "production";
+const port = Number(process.env.PORT ?? 3333);
+const host = process.env.HOST ?? "0.0.0.0";
+
 
 server.register(fastifyCors, {
   origin: isProduction
@@ -120,6 +123,6 @@ server.register(productsRoutes);
 server.register(usersRoutes);
 
 // start
-server.listen({ port: 3333 }).then(() => {
-  console.log("HTTP server running on port: 3333");
+server.listen({ port, host }).then(() => {
+  console.log(`HTTP server running on ${host}:${port}`);
 });
