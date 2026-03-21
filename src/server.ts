@@ -121,6 +121,15 @@ server.register(authRoutes);
 server.register(productsRoutes);
 server.register(usersRoutes);
 
+// 
+server.get("/", async () => {
+  return {
+    status: "ok",
+    message: "API running",
+    docs: "/docs",
+  };
+});
+
 // start
 server.listen({ port, host }).then(() => {
   console.log(`HTTP server running on ${host}:${port}`);
