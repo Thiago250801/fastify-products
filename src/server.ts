@@ -1,4 +1,5 @@
 ﻿import fastify from "fastify";
+import "dotenv/config"
 import fastifyCookie from "@fastify/cookie";
 import swagger from "@fastify/swagger";
 import swaggerUI from "@fastify/swagger-ui";
@@ -43,9 +44,7 @@ const host = process.env.HOST ?? "0.0.0.0";
 
 
 server.register(fastifyCors, {
-  origin: isProduction
-    ? "https://myproductiondomain.com"
-    : "http://localhost:3000",
+  origin: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 });
