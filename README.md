@@ -1,87 +1,155 @@
-﻿# Fastify Produtos API
+# Fastify Produtos API
 
-API REST construída com Fastify + Prisma para gestão de produtos com autenticação JWT, autorização baseada em papéis e documentação Swagger.
+API REST construída com Fastify, Prisma e PostgreSQL para autenticação JWT, controle de acesso por papéis e CRUD de produtos.
 
-## Tecnologias principais
-- Fastify 5 com `fastify-type-provider-zod` para garantir validações e serializações tipadas.
-- Prisma (Adapter PG) + PostgreSQL com migrations versionadas (`prisma/migrations/...`).
-- JWT (`jsonwebtoken`) com tokens de acesso (15 minutos) e refresh (7 dias) contendo o papel do usuário.
-- Zod para schemas (`src/schemas/*`), Fastify Swagger para documentação em `/docs`.
+## Stack
+- Fastify 5 com `fastify-type-provider-zod`
+- Prisma 7 com PostgreSQL
+- JWT com `jsonwebtoken`
+- Cookies HttpOnly com `@fastify/cookie`
+- Documentação OpenAPI com Swagger UI
+- CORS com `@fastify/cors`
+- Logs formatados com `pino-pretty`
 
 ## Pré-requisitos
-1. Node.js 20+ (compatível com dependências `typescript 5.9`, `tsx`).
-2. PostgreSQL (pode rodar via Docker Compose disponível em `docker-compose.yml`).
-3. Variáveis de ambiente definidas em `.env`:
-   - `DATABASE_URL` (ex.: `postgresql://postgres:postgres@localhost:5432/produtos?schema=public`).
-   - `JWT_SECRET` (opcional; padrão `supersecret`, mas defina um valor forte para produção).
-   - `COOKIE_SECRET` (usado pelo plugin `@fastify/cookie` para assinar os cookies HttpOnly; pode ser o mesmo `JWT_SECRET`).
+1. Node.js 20+
+2. PostgreSQL
+3. Um arquivo `.env` com:
 
-## Configuração rápida
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/produtos?schema=public"
+JWT_SECRET="supersecret"
+COOKIE_SECRET="cookie-secret"
+NODE_ENV="development"
 ```
-npm install            # instala dependências
-# (opcional) adapte seu .env com DATABASE_URL/JWT_SECRET
-npm run dev            # executa o projeto em modo watch (tsx)
-```
-Use `docker compose up -d postgres` para subir o banco se desejar o ambiente completo.
 
-## Banco de dados
-Execute os comandos Prisma após conectar ao banco:
-```
+Se quiser subir o banco com Docker, use o `docker-compose.yml` do projeto.
+
+## Instalação
+```bash
+npm install
 npx prisma generate
-npx prisma migrate dev --name add-user-model
-npx prisma migrate dev --name link-product-user
+npx prisma migrate dev
+npm run dev
 ```
-As duas migrations (`20260312212127_add_user_model` e `20260313120000_link_product_user`) criam o modelo `User`, vinculam `Product` a `User` e adicionam constraints.
 
-## Scripts úteis
+O servidor sobe na porta `3333` e a documentação fica em `http://localhost:3333/docs`.
+
+## Scripts
 | Script | Descrição |
 | --- | --- |
-| `npm run dev` | Inicia o servidor com `tsx watch --env-file .env src/server.ts`. |
-| `npm run build` | Compila o TypeScript para `dist/` via `tsc`. |
-| `npm start` | Executa o build compilado (`node dist/server.js`). |
-| `npm run test` | Placeholder (retorna erro). |
+| `npm run dev` | Inicia o servidor com reload via `tsx watch`. |
+| `npm run build` | Compila o projeto TypeScript para `dist/`. |
+| `npm start` | Executa a versão compilada. |
+| `npm run test` | Placeholder atual, ainda sem suíte configurada. |
 
-## Principais endpoints
-### Autenticação
-| Método | Rota | Observações |
-| --- | --- | --- |
-| `POST /auth/register` | Corpo: `{ name, email, password, confirmPassword }`.<br>Resposta: `{ user, accessToken, refreshToken }` e dois cookies HttpOnly (`auth_token` e `refresh_token`) com os mesmos tokens.<br>Valida senha/confirmPassword e armazena `refreshToken` no banco. |
-| `POST /auth/login` | Corpo: `{ email, password }`. Retorna `{ user, accessToken, refreshToken }` e os cookies `auth_token`/`refresh_token` (HttpOnly/`sameSite=lax`). |
-| `GET /auth/me` | Header `Authorization: Bearer <token>` ou cookie `auth_token`. Retorna o usuário autenticado. |
+## Banco de dados
+O projeto usa uma migration inicial consolidada em:
 
-### Produtos
-| Método | Rota | Requisitos | Retorno |
-| --- | --- | --- | --- |
-| `GET /products` | Lista todos os produtos. Resposta: `{ data: Product[] }`. |
-| `GET /products/:id` | Busca um produto. Retorno: `{ data: Product }`. |
-| `POST /products` | Autenticação obrigatória.<br>Body: `{ name, price }`.<br>Cria produto atrelado ao usuário e retorna `{ data: Product }`. |
-| `PUT /products/:id` | Autenticação obrigatória.<br>Só o dono ou um ADMIN (`request.user.role`) pode atualizar. Body obrigatório `{ name, price }`. |
-| `DELETE /products/:id` | Autenticação obrigatória e verificação de dono/ADMIN. Retorna 204. |
+`prisma/migrations/20260316205515_init/migration.sql`
 
-Os responses de produto incluem o campo `user` (sem senha), conforme `productResponseSchema` e `userResponseSchema`.
+Essa baseline cria:
+- enum `UserRole` com valores `USER` e `ADMIN`
+- tabela `User`
+- tabela `Product`
+- relacionamento de `Product` com `User`
+- índice único para email de usuário
 
-### Usuários (apenas ADMIN)
-Todas as rotas abaixo usam o middleware `authMiddleware` + `adminMiddleware`.
+O schema Prisma atual define:
+- `User`: `id`, `name`, `email`, `password`, `role`, `refreshToken`, `createdAt`
+- `Product`: `id`, `name`, `price`, `userId`, `createdAt`, `updatedAt`
+
+## Autenticação e segurança
+- `POST /auth/register` cria usuário e retorna `user`, `accessToken` e `refreshToken`
+- `POST /auth/login` autentica e retorna a mesma estrutura
+- `GET /auth/me` retorna o usuário autenticado
+- O middleware aceita `Authorization: Bearer <token>` ou cookie `auth_token`
+- As rotas administrativas exigem `role === "ADMIN"`
+- Os cookies `auth_token` e `refresh_token` são `httpOnly`, com `sameSite=lax` e `secure` em produção
+
+## CORS
+O servidor registra `@fastify/cors` com `credentials: true`.
+
+Origens permitidas:
+- desenvolvimento: `http://localhost:3000`
+- produção: `https://myproductiondomain.com`
+
+Métodos liberados:
+- `GET`
+- `POST`
+- `PUT`
+- `DELETE`
+
+## Endpoints principais
+
+### Auth
 | Método | Rota | Descrição |
 | --- | --- | --- |
-| `GET /users` | Lista usuários (`userListResponseSchema`). |
-| `GET /users/:id` | Retorna o usuário informado. |
-| `PATCH /users/:id` | Atualiza `name`, `email`, `password`, `role`. Senha é hashada. |
-| `DELETE /users/:id` | Remove o usuário (204). |
+| `POST` | `/auth/register` | Registra um novo usuário. |
+| `POST` | `/auth/login` | Faz login e define cookies HttpOnly. |
+| `GET` | `/auth/me` | Retorna o usuário autenticado. |
 
-## Segurança e middleware
-- `authMiddleware` aceita o cabeçalho `Authorization: Bearer <token>` ou o cookie `auth_token` HttpOnly (setado em `auth.controller.ts`), sempre populando `request.user` com `{ id, role }`.
-- `adminMiddleware` garante que o usuário tenha `role === "ADMIN"`.
-- `ProductsService` valida existência do produto e checa se quem altera/exclui é o dono ou ADMIN. `UsersService` lança `NotFoundError` quando falta o registro.
-- `src/errors/http-errors.ts` define `AuthenticationError`, `ForbiddenError`, `NotFoundError`; o server mapeia essas classes para respostas 401/403/404.
-- O handler global também trata `PrismaClientKnownRequestError` com código `P2025` como 404 e registra erros no `request.log` antes de responder 500.
-- O plugin `@fastify/cookie` carrega as opções de cookie em `src/config/cookies.ts`, garantindo `httpOnly`, `secure` em produção, `sameSite=lax` e `path="/"` para os cookies `auth_token` (15 minutos) e `refresh_token` (7 dias).
+### Products
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| `GET` | `/products` | Lista todos os produtos. |
+| `GET` | `/products/:id` | Busca um produto por ID. |
+| `POST` | `/products` | Cria produto para o usuário autenticado. |
+| `PUT` | `/products/:id` | Atualiza produto do dono ou de um ADMIN. |
+| `DELETE` | `/products/:id` | Remove produto do dono ou de um ADMIN. |
 
-## Documentação e testes manuais
-- Documentação OpenAPI gerada automaticamente e publicada em `/docs` (inclui tags `Auth`, `Products`, `Users` e esquema `BearerAuth`).
-- Use o Swagger UI para testar JWTs (botão `Authorize` para preencher o token de acesso).
+### Users
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| `GET` | `/users` | Lista usuários. |
+| `GET` | `/users/:id` | Busca usuário por ID. |
+| `PATCH` | `/users/:id` | Atualiza nome, email, senha ou papel. |
+| `DELETE` | `/users/:id` | Remove usuário. |
 
-## Observações finais
-- A aplicação usa `UserRole` (`USER | ADMIN`) em todo stack (`auth.service.ts`, `products.services.ts`, `users.service.ts`).
-- Os tokens são gerados em `src/lib/jwt.ts` e o `refreshToken` é persistido no usuário após cada login/registro.
-- Para colocar em produção, configure `JWT_SECRET` forte, rode `npm run build` e execute `NODE_ENV=production npm start`.
+Todas as rotas de `Users` exigem autenticação e permissão de administrador.
+
+## Formato das respostas
+As respostas de produto seguem o formato:
+
+```json
+{
+  "data": {
+    "id": "uuid",
+    "name": "Notebook",
+    "price": 3500,
+    "userId": "uuid",
+    "createdAt": "2026-03-21T12:00:00.000Z",
+    "updatedAt": "2026-03-21T12:30:00.000Z",
+    "user": {
+      "id": "uuid",
+      "name": "Thiago",
+      "email": "thiago@email.com",
+      "role": "USER",
+      "createdAt": "2026-03-21T12:00:00.000Z"
+    }
+  }
+}
+```
+
+As datas são serializadas como strings ISO.
+
+## Tratamento de erros
+- `401` para falhas de autenticação
+- `403` para ações sem permissão
+- `404` para recurso não encontrado
+- `500` para erro interno não tratado
+
+O handler global também trata `PrismaClientKnownRequestError` com código `P2025` como `404`.
+
+## Swagger
+O OpenAPI é gerado automaticamente e exposto em `/docs`, com as tags:
+- `Auth`
+- `Products`
+- `Users`
+
+O esquema `BearerAuth` já está configurado para testes no Swagger UI.
+
+## Observações
+- O projeto usa logs formatados com `pino-pretty` no servidor Fastify.
+- O `refreshToken` é persistido no banco após login e registro.
+- Ainda não existe suíte de testes automatizados configurada.
