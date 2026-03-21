@@ -13,7 +13,7 @@ API REST construída com Fastify, Prisma e PostgreSQL para autenticação JWT, c
 
 ## Pré-requisitos
 1. Node.js 20+
-2. PostgreSQL
+2. Docker e Docker Compose, ou uma instância local de PostgreSQL
 3. Um arquivo `.env` com:
 
 ```env
@@ -23,11 +23,12 @@ COOKIE_SECRET="cookie-secret"
 NODE_ENV="development"
 ```
 
-Se quiser subir o banco com Docker, use o `docker-compose.yml` do projeto.
+O jeito recomendado neste projeto para subir o banco é usar Docker com o `docker-compose.yml`.
 
 ## Instalação
 ```bash
 npm install
+docker compose up -d postgres
 npx prisma generate
 npx prisma migrate dev
 npm run dev
@@ -44,6 +45,41 @@ O servidor sobe na porta `3333` e a documentação fica em `http://localhost:333
 | `npm run test` | Placeholder atual, ainda sem suíte configurada. |
 
 ## Banco de dados
+### PostgreSQL com Docker
+O projeto já inclui um `docker-compose.yml` para subir a imagem do PostgreSQL localmente.
+
+Configuração usada pelo container:
+- imagem: `postgres:16`
+- porta: `5432`
+- banco: `produtos`
+- usuário: `postgres`
+- senha: `postgres`
+
+Comandos úteis:
+
+```bash
+docker compose up -d postgres
+docker compose ps
+docker compose logs -f postgres
+docker compose down
+```
+
+A `DATABASE_URL` do `.env` já está alinhada com essa configuração:
+
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/produtos?schema=public"
+```
+
+Se você estiver começando do zero, o fluxo recomendado é:
+
+```bash
+docker compose up -d postgres
+npx prisma generate
+npx prisma migrate dev
+npm run dev
+```
+
+### Schema e migration
 O projeto usa uma migration inicial consolidada em:
 
 `prisma/migrations/20260316205515_init/migration.sql`
