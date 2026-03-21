@@ -1,9 +1,10 @@
 ﻿import fastify from "fastify";
-import "dotenv/config"
+import "dotenv/config";
 import fastifyCookie from "@fastify/cookie";
 import swagger from "@fastify/swagger";
 import swaggerUI from "@fastify/swagger-ui";
 import {
+  jsonSchemaTransform,
   serializerCompiler,
   validatorCompiler,
   ZodTypeProvider,
@@ -41,7 +42,6 @@ const server = app.withTypeProvider<ZodTypeProvider>();
 const isProduction = process.env.NODE_ENV === "production";
 const port = Number(process.env.PORT ?? 3333);
 const host = process.env.HOST ?? "0.0.0.0";
-
 
 server.register(fastifyCors, {
   origin: true,
@@ -84,6 +84,7 @@ server.register(swagger, {
       },
     },
   },
+  transform:  jsonSchemaTransform ,
 });
 
 server.register(swaggerUI, {
@@ -121,7 +122,7 @@ server.register(authRoutes);
 server.register(productsRoutes);
 server.register(usersRoutes);
 
-// 
+//
 server.get("/", async () => {
   return {
     status: "ok",
