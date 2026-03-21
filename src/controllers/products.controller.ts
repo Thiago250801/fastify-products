@@ -1,5 +1,6 @@
 ﻿import { FastifyReply, FastifyRequest } from "fastify";
 import { ProductsService } from "../services/products.services";
+import { mapProduct } from "../mappers/product.mapper";
 
 const service = new ProductsService();
 
@@ -25,14 +26,14 @@ export const createProduct = async (
   });
 
   return reply.status(201).send({
-    data: product,
+    data: mapProduct(product),
   });
 };
 
 export const getProducts = async (_: FastifyRequest, reply: FastifyReply) => {
   const products = await service.findAll();
 
-  return reply.send({ data: products });
+  return reply.send({ data: products.map(mapProduct) });
 };
 
 export const getProduct = async (
@@ -44,7 +45,7 @@ export const getProduct = async (
   const product = await service.findById(id);
 
   return reply.send({
-    data: product,
+    data: mapProduct(product),
   });
 };
 
@@ -66,7 +67,7 @@ export const updateProduct = async (
   );
 
   return reply.send({
-    data: product,
+    data: mapProduct(product),
   });
 };
 

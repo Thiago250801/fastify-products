@@ -7,6 +7,7 @@ const userSelect = {
   name: true,
   email: true,
   role: true,
+  createdAt: true,
 } as const;
 
 const includeUser = {
