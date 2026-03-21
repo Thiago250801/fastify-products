@@ -1,18 +1,36 @@
-import fastify from "fastify";
+﻿import fastify from "fastify";
 import fastifyCookie from "@fastify/cookie";
 import swagger from "@fastify/swagger";
 import swaggerUI from "@fastify/swagger-ui";
-import { serializerCompiler, validatorCompiler, ZodTypeProvider } from "fastify-type-provider-zod";
+import {
+  serializerCompiler,
+  validatorCompiler,
+  ZodTypeProvider,
+} from "fastify-type-provider-zod";
 import { Prisma } from "./generated/prisma/client";
 
-import { ForbiddenError, NotFoundError, AuthenticationError } from "./errors/http-errors";
+import {
+  ForbiddenError,
+  NotFoundError,
+  AuthenticationError,
+} from "./errors/http-errors";
 
 import { productsRoutes } from "./routes/products.routes";
 import { usersRoutes } from "./routes/users.routes";
 import { authRoutes } from "./routes/auth.routes";
+import fastifyCors from "@fastify/cors";
 
 const app = fastify({
-  logger: true,
+  logger: {
+    transport: {
+      target: "pino-pretty",
+      options: {
+        colorize: true,
+        translateTime: "HH:MM:ss",
+        ignore: "pid,hostname",
+      },
+    },
+  },
 });
 
 app.setValidatorCompiler(validatorCompiler);
@@ -20,6 +38,14 @@ app.setSerializerCompiler(serializerCompiler);
 
 const server = app.withTypeProvider<ZodTypeProvider>();
 const isProduction = process.env.NODE_ENV === "production";
+
+server.register(fastifyCors, {
+  origin: isProduction
+    ? "https://myproductiondomain.com"
+    : "http://localhost:3000",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
+});
 
 server.register(fastifyCookie, {
   secret: process.env.COOKIE_SECRET ?? "cookie-secret",
@@ -41,7 +67,10 @@ server.register(swagger, {
     tags: [
       { name: "Auth", description: "Fluxos de autenticação" },
       { name: "Products", description: "CRUD de produtos" },
-      { name: "Users", description: "Operações administrativas sobre usuários" },
+      {
+        name: "Users",
+        description: "Operações administrativas sobre usuários",
+      },
     ],
     components: {
       securitySchemes: {
@@ -61,7 +90,6 @@ server.register(swaggerUI, {
 
 // error handler
 server.setErrorHandler((error, request, reply) => {
-
   if (error instanceof AuthenticationError) {
     return reply.status(401).send({ message: error.message });
   }
