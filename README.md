@@ -5,6 +5,7 @@ API REST construída com Fastify, Prisma e PostgreSQL para autenticação JWT, c
 ## Stack
 - Fastify 5 com `fastify-type-provider-zod`
 - Prisma 7 com PostgreSQL
+- Docker e Docker Compose para subir o PostgreSQL localmente
 - JWT com `jsonwebtoken`
 - Cookies HttpOnly com `@fastify/cookie`
 - Documentação OpenAPI com Swagger UI
