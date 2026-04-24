@@ -108,19 +108,23 @@ O schema Prisma atual define:
 - Os cookies `auth_token` e `refresh_token` são `httpOnly`, com `sameSite=lax` e `secure` em produção
 
 ## CORS
-O servidor registra `@fastify/cors` com `credentials: true`.
-
-Origens permitidas:
-- desenvolvimento: `http://localhost:3000`
-- produção: `https://myproductiondomain.com`
+O servidor registra `@fastify/cors` com:
+- `origin: true`
+- `credentials: true`
 
 Métodos liberados:
 - `GET`
 - `POST`
 - `PUT`
+- `PATCH`
 - `DELETE`
 
 ## Endpoints principais
+
+### Root
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| `GET` | `/` | Redireciona automaticamente para `/docs`. |
 
 ### Auth
 | Método | Rota | Descrição |
