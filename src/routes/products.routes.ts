@@ -50,7 +50,7 @@ export async function productsRoutes(app: FastifyInstance) {
       preHandler: authMiddleware,
       schema: {
         tags: ["Products"],
-        summary: "Cria um novo produto (usuÃ¡rios autenticados)",
+        summary: "Cria um novo produto (usuários autenticados)",
         body: productBodySchema,
         response: {
           201: productSingleResponseSchema,
