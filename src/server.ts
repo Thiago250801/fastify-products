@@ -45,7 +45,7 @@ const host = process.env.HOST ?? "0.0.0.0";
 
 server.register(fastifyCors, {
   origin: true,
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   credentials: true,
 });
 
@@ -123,12 +123,8 @@ server.register(productsRoutes);
 server.register(usersRoutes);
 
 //
-server.get("/", async () => {
-  return {
-    status: "ok",
-    message: "API running",
-    docs: "/docs",
-  };
+server.get("/", async (_, reply) => {
+  return reply.redirect("/docs");
 });
 
 // start
